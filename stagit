@@ -1,0 +1,221 @@
+#!/bin/sh
+# developed by acidvegas (https://acid.vegas/stagit)
+
+set -e
+
+##### settings ########################################################################
+CLONE_URL='remote'   # base url for cloning repositories ('remote' = remote.origin.url)
+CNAME=''             # create a CNAME file with a custom domain (empty = do not create)
+MAX_COMMITS=100      # maximum number of commits to show (0 = all)
+MAX_COMMIT_MSG=100   # maximum characters in a commit message to display (0 = all)
+MAX_COMMIT_LINES=999 # maximum number of lines to show in a commit (0 = all)
+REPO_DIR=$HOME/git   # directory containing repositories
+THEME='light'        # default style used ('light' or 'dark')
+TITLE='Repositories' # title used on homepage
+WWW_DIR=$HOME/www    # directory to output to
+#######################################################################################
+
+generate_404() {
+	{
+		echo "<!doctype html>"
+		echo "<title>Error</title>"
+		if [ $THEME = 'light' ]; then
+			echo "<style>body{background-color:#fff;color:#000;font-family:monospace}</style>"
+		else # We have to use internal CSS here because the style.css path will differ inside directories!
+			echo "<style>body{background-color:#111;color:#fff;font-family:monospace}</style>"
+		fi
+		echo "<br><br><br><enter><h1>404</h1></center>"
+	} > $WWW_DIR/404.html
+}
+
+generate_yml() {
+	{
+		echo "pages:"
+		echo "  stage: deploy"
+		echo "  script:"
+		echo "  - mkdir .public"
+		echo "  - cp -r * .public"
+		echo "  - mv .public public"
+		echo "  artifacts:"
+		echo "    paths:"
+		echo "    - public"
+		echo "  only:"
+		echo "  - master"
+	} > $WWW_DIR/.gitlab-ci.yml
+}
+
+generate_css() {
+	if [ $THEME = 'light' ]; then
+		{
+			echo "a{color:blue}"
+			echo "body{background-color:#fff;color:#000;font-family:monospace;margin-top:0px}"
+			echo "h1{margin:0px}"
+			echo "h1 a{color:#000;text-decoration:none}"
+			echo "h4{color:#777;margin:0px}"
+			echo "h5{margin:0px;font-style:italic;font-weight:normal}"
+			echo "hr{border:none;border-bottom:1px solid #777}"
+			echo "pre{margin:0px}"
+			echo ".bold{font-weight:bold}"
+			echo ".branch{color:green;font-weight:bold}"
+			echo ".commit{color:olive}"
+			echo ".deletion{color:red}"
+			echo ".hunk{color:teal}"
+			echo ".insertion{color:green}"
+			echo ".reference{color:teal;font-weight:bold}"
+			echo ".remote{color:red;font-weight:bold}"
+			echo ".item:hover{background-color:#eee}"
+			echo ".item td{white-space:nowrap}"
+			echo ".linenumber{text-align:right;-moz-user-select:-moz-none;-khtml-user-select: none;-webkit-user-select:none}"
+			echo ".linenumber a{text-decoration:none}"
+			echo "#main{border-collapse:collapse;table-layout:fixed}"
+			echo "#main td,th{padding-left:5px;padding-right:5px}"
+			echo "#navigation{color:#000;font-weight:900;text-align:left}"
+		} > $WWW_DIR/style.css
+	else
+		{
+			echo "a{color:#8dc}"
+			echo "a:hover{color:#8cd}"
+			echo "body{background-color:#111;color:#fff;font-family:monospace;margin-top:0px}"
+			echo "h1{margin:0px}"
+			echo "h1 a{color:#fff;text-decoration:none}"
+			echo "h4{color:#777;margin:0px}"
+			echo "h5{font-style:italic;font-weight:normal;margin:0px}"
+			echo "hr{border:none;border-bottom:1px dashed #fff}"
+			echo "pre{margin:0px}"
+			echo ".bold{font-weight:bold}"
+			echo ".branch{color:green;font-weight:bold}"
+			echo ".commit{color:olive}"
+			echo ".deletion{color:red}"
+			echo ".hunk{color:teal}"
+			echo ".insertion{color:green}"
+			echo ".reference{color:teal;font-weight:bold}"
+			echo ".remote{color:red;font-weight:bold}"
+			echo ".item:hover{background-color:#1a1a1a}"
+			echo ".item td{white-space:nowrap}"
+			echo ".linenumber{text-align:right;-moz-user-select:-moz-none;-khtml-user-select: none;-webkit-user-select:none}"
+			echo ".linenumber a{text-decoration:none}"
+			echo "#main{border-collapse:collapse;table-layout:fixed}"
+			echo "#main td,th{padding-left:5px;padding-right:5px}"
+			echo "#navigation{color:#fff;font-weight:900;text-align:left}"
+		} > $WWW_DIR/style.css
+	fi
+}
+
+generate_index() {
+	{
+		echo "<!doctype html>"
+		echo "<link rel=\"stylesheet\" href=\"style.css\">"
+		echo "<title>$TITLE</title>"
+		echo "<h1>&#8962;&#xFE0E; $TITLE</h1>"
+		echo "<hr>"
+		echo "<table id=\"main\" cellpadding=\"0\" cellspacing=\"0\">"
+		echo "<tr id=\"navigation\"><th>Name</th><th>Description</th><th>Owner</th><th>Last commit</th></tr>"
+	} > $WWW_DIR/index.html
+}
+
+generate_repository_index() {
+	local REPO_NAME=$1
+	local REPO_URL=$2
+	local REPO_DESC=${@:3} # todo: fix possible bashism
+	mkdir -p $WWW_DIR/$REPO_NAME/commit
+	{
+		echo "<!doctype html>"
+		echo "<link rel=\"stylesheet\" href=\"../style.css\">"
+		echo "<title>$REPO_NAME</title>"
+		echo "<h1><a href=\"../index.html\" title=\"Home\">&#8962;&#xFE0E;</a> $REPO_NAME</h1>"
+		echo "<div style=\"padding-left:30px\">"
+		echo "<h4>$REPO_DESC</h4>"
+		echo "<h5>git clone <a href=\"$REPO_URL\" title=\"$REPO_NAME clone URL\">$REPO_URL</a></h5>"
+		echo "</div>"
+		echo "<hr>"
+		echo "<table id=\"main\" cellpadding=\"0\" cellspacing=\"0\">"
+		echo "<tr id=\"navigation\"><th></th><th>Hash</th><th>Commit message</th><th>Author</th><th>Date</th><th align=\"right\">Files</th><th align=\"right\">+</th><th align=\"right\">-</th></tr>"
+	} > $WWW_DIR/$REPO_NAME/index.html
+}
+
+generate_commit_index() {
+	local REPO_NAME=$1
+	local COMMIT_HASH=$2
+	{
+		echo "<!doctype html>"
+		echo "<link rel=\"stylesheet\" href=\"../../style.css\">"
+		echo "<title>$REPO_NAME :: $COMMIT_HASH</title>"
+		echo "<h1><a href=\"../index.html\" title=\"Back to Repository\">&larr;&#xFE0E;</a> $REPO_NAME :: $COMMIT_HASH</h1>"
+		echo "<hr>"
+		echo "<table id=\"main\" cellpadding=\"0\" cellspacing=\"0\">"
+	} > $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
+}
+
+[ ! -d $REPO_DIR ] && echo "'$REPO_DIR' directory does not exist" && exit 1
+REPOS=$(find $REPO_DIR -type d -name mirrors -prune -o -type d -name .git -print | sort  -t '/' -k 7)
+[ -z "$REPOS" ] && echo "'$REPO_DIR' contains no repositories" && exit 1
+mkdir -p $WWW_DIR && rm -rf $WWW_DIR/*
+[ ! -z $CNAME ] && echo $CNAME > $WWW_DIR/CNAME
+generate_yml && generate_404 && generate_css && generate_index
+for d in $REPOS; do
+	REPO_NAME=$(basename -s .git `git --git-dir $d config --get remote.origin.url`)
+	if [ -f $d/description ]; then
+		REPO_DESC=$(head -n 1 $d/description)
+		if [ "$REPO_DESC" = "Unnamed repository; edit this file 'description' to name the repository." ]; then
+			echo "edit description for $REPO_NAME ($d/description)"
+			REPO_DESC="no description available"
+		fi
+	else
+		echo "missing description file for $REPO_NAME ($d/description)"
+		REPO_DESC="no description available"
+	fi
+	REPO_OWNER=$(git --git-dir $d log --reverse --pretty=format:'%an' | head -n 1) # todo: find a better way to do this & handle organization name parsing
+	REPO_LAST_COMMIT=$(git --git-dir $d log -1 --pretty=format:'%cs')
+	echo "<tr class=\"item\"><td><a href=\"$REPO_NAME\" title=\"$REPO_NAME\">$REPO_NAME</a></td><td>$REPO_DESC</td><td>$REPO_OWNER</td><td>$REPO_LAST_COMMIT</td></tr>" >> $WWW_DIR/index.html
+	if [ $CLONE_URL = 'remote' ]; then
+		REPO_URL=$(git --git-dir $d config --get remote.origin.url)
+		REPO_URL=$(echo $REPO_URL | sed 's#git@github.com:#https://github.com/#' | sed 's#git@gitlab.com:#https://gitlab.com/#')
+	else
+		REPO_URL=$CLONE_URL/$REPO_NAME.git
+	fi
+	generate_repository_index $REPO_NAME $REPO_URL $REPO_DESC
+	if [ $MAX_COMMITS -eq 0 ]; then
+		REPO_COMMITS=$(git --git-dir $d log --all --date=format:"%Y-%m-%d %H:%M" --pretty=format:"%G?|%GS|%GK|%h|%s|%cn|%cd")
+	else
+		REPO_COMMITS=$(git --git-dir $d log --all --date=format:"%Y-%m-%d %H:%M" --pretty=format:"%G?|%GS|%GK|%h|%s|%cn|%cd" | head -n $MAX_COMMITS)
+	fi
+	echo "$REPO_COMMITS" | while IFS= read -r line; do
+		COMMIT_SIGNED=$(echo $line | cut -d'|' -f1)
+		COMMIT_KEY=$(echo $line | cut -d'|' -f2)
+		COMMIT_KEYID=$(echo $line | cut -d'|' -f3)
+		if [ $COMMIT_SIGNED = 'G' ]; then
+			COMMIT_SIGNED="<span style=\"color:green\" title=\"$COMMIT_KEY&#13;$COMMIT_KEYID\">&#128274;&#xFE0E;</span>"
+		elif [ $COMMIT_SIGNED = 'B' ] || [ $COMMIT_SIGNED = 'U' ]  || [ $COMMIT_SIGNED = 'X' ] || [ $COMMIT_SIGNED = 'Y' ] || [ $COMMIT_SIGNED = 'R' ]; then
+			COMMIT_SIGNED="<span style=\"color:red\" title=\"$COMMIT_KEY&#13;$COMMIT_KEYID&#13;key is bad, invalid, expired, or revoked\">&#128274;&#xFE0E;</span>"
+		else
+			COMMIT_SIGNED=""
+		fi
+		COMMIT_HASH=$(echo $line | cut -d'|' -f4)
+		COMMIT_MESSAGE=$(echo $line | cut -d'|' -f5 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g;')
+		if [ $MAX_COMMIT_MSG -ne 0 -a ${#COMMIT_MESSAGE} -gt $MAX_COMMIT_MSG ]; then
+			COMMIT_MESSAGE=${COMMIT_MESSAGE:0:$MAX_COMMIT_MSG}... # todo: fix possible bashism
+		fi
+		COMMIT_AUTHOR=$(echo $line | cut -d'|' -f6)
+		COMMIT_DATE=$(echo $line | cut -d'|' -f7)
+		COMMIT_SUMMARY=$(git --git-dir $d show $COMMIT_HASH --stat | grep -E "fil(e|es) changed" | awk '{files+=$1; inserted+=$4; deleted+=$6} END {printf "%s|+%s|-%s", files, inserted, deleted }')
+		COMMIT_FILES=$(echo $COMMIT_SUMMARY | cut -d'|' -f1)
+		COMMIT_INSERTIONS=$(echo $COMMIT_SUMMARY | cut -d'|' -f2)
+		COMMIT_DELETIONS=$(echo $COMMIT_SUMMARY | cut -d'|' -f3)
+		echo "<tr class=\"item\"><td>$COMMIT_SIGNED</td><td><a href=\"commit/$COMMIT_HASH.html\" title=\"View this commit\">$COMMIT_HASH</a></td><td>$COMMIT_MESSAGE</td><td>$COMMIT_AUTHOR</td><td>$COMMIT_DATE</td><td align=\"right\">$COMMIT_FILES</td><td align=\"right\">$COMMIT_INSERTIONS</td><td align=\"right\">$COMMIT_DELETIONS</td></tr>" >> $WWW_DIR/$REPO_NAME/index.html
+		generate_commit_index $REPO_NAME $COMMIT_HASH
+		COMMIT_DIFF=$(git --git-dir $d show $COMMIT_HASH -p --stat --decorate --color --expand-tabs=4 | sed '/\\ No newline at end of file/d')
+		if [ $MAX_COMMIT_LINES -ne 0 -a $(echo "$COMMIT_DIFF" | wc -l) -gt $MAX_COMMIT_LINES ]; then
+			COMMIT_DIFF=$(echo "$COMMIT_DIFF" | head -n $MAX_COMMIT_LINES)
+		fi
+		COMMIT_DIFF=$(echo "$COMMIT_DIFF" | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g;' | tr -d '\r')
+		COMMIT_DIFF=$(echo "$COMMIT_DIFF" | sed 's/\[31m/<span class="deletion">/g; s/\[1\;31m/<span class="remote">/g; s/\[32m/<span class="insertion">/g; s/\[1\;32m/<span class="branch">/g; s/\[33m/<span class="commit">/g; s/\[36m/<span class="hunk">/g; s/\[1\;36m/<span class="reference">/g; s/\[1m/<span class="bold">/g; s/\[m/<\/span>/g')
+		COUNT=1
+		echo "$COMMIT_DIFF" | while IFS= read -r line; do
+			if [ ! "$line" = "\ No newline at end of file" ]; then
+				echo "<tr class=\"item\"><td class=\"linenumber\"><a href=\"#l$COUNT\" name=\"l$COUNT\">$COUNT</a></td><td><pre>$line</pre></td></tr>" >> $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
+				COUNT=`expr $COUNT + 1`
+			fi
+		done
+		echo "</table></pre>" >> $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
+	done
+done
