@@ -17,7 +17,6 @@ A live demo of this script can be seen [here](https://acid.vegas).
 | MAX_COMMIT_MSG   | 100            | maximum characters in a commit message to display *(0 = all)*      |
 | MAX_COMMIT_LINES | 999            | maximum number of lines to show in a commit *(0 = all)*            |
 | REPO_DIR         | $HOME/git      | directory containing repositories                                  |
-| THEME            | light          | style used *(light or dark)*                                       |
 | TITLE            | "Repositories" | title used on homepage                                             |
 | WWW_DIR          | $HOME/www      | directory to output to                                             |
 
@@ -28,13 +27,10 @@ The `CNAME` option is optional if you are planning on using a custom domain with
 Lastly, stagit will ignore the `$REPO_DIR/mirrors` directory by default. To make stagit include this directory, remove `-path $REPO_DIR/mirrors -prune` from the `find` command in the source.
 
 ## Todo
-- mailto links in commits and more
-- Create an index per-user to view specific users repos & key information.
-- Pagination support for repos exceeding `MAX_COMMITS`.
 - Add a footer to all pages with the last updated datetime and a link to this repository.
 - Hook git pushes to rebuild the repositories index.
 - Add support for displaying LICENSE/README files and convert markdown to HTML.
-- Add support to view file contents.
+- Add support to view file contents *(have to detect all non-binary files to exclude images, etc)*.
 - Fix all possible bashisms identified in source by checkbashisms.
 
 ## Mirrors

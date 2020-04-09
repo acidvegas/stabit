@@ -10,7 +10,6 @@ MAX_COMMITS=100      # maximum number of commits to show (0 = all)
 MAX_COMMIT_MSG=100   # maximum characters in a commit message to display (0 = all)
 MAX_COMMIT_LINES=999 # maximum number of lines to show in a commit (0 = all)
 REPO_DIR=$HOME/git   # directory containing repositories
-THEME='light'        # default style used ('light' or 'dark')
 TITLE='Repositories' # title used on homepage
 WWW_DIR=$HOME/www    # directory to output to
 #######################################################################################
@@ -19,86 +18,38 @@ generate_404() {
 	{
 		echo "<!doctype html>"
 		echo "<title>Error</title>"
-		if [ $THEME = 'light' ]; then
-			echo "<style>body{background-color:#fff;color:#000;font-family:monospace}</style>"
-		else # We have to use internal CSS here because the style.css path will differ inside directories!
-			echo "<style>body{background-color:#111;color:#fff;font-family:monospace}</style>"
-		fi
+		echo "<style>body{background-color:#111;color:#fff;font-family:monospace}</style>"
 		echo "<br><br><br><enter><h1>404</h1></center>"
 	} > $WWW_DIR/404.html
 }
 
-generate_yml() {
-	{
-		echo "pages:"
-		echo "  stage: deploy"
-		echo "  script:"
-		echo "  - mkdir .public"
-		echo "  - cp -r * .public"
-		echo "  - mv .public public"
-		echo "  artifacts:"
-		echo "    paths:"
-		echo "    - public"
-		echo "  only:"
-		echo "  - master"
-	} > $WWW_DIR/.gitlab-ci.yml
-}
-
 generate_css() {
-	if [ $THEME = 'light' ]; then
-		{
-			echo "a{color:blue}"
-			echo "body{background-color:#fff;color:#000;font-family:monospace;margin-top:0px}"
-			echo "h1{margin:0px}"
-			echo "h1 a{color:#000;text-decoration:none}"
-			echo "h4{color:#777;margin:0px}"
-			echo "h5{margin:0px;font-style:italic;font-weight:normal}"
-			echo "hr{border:none;border-bottom:1px solid #777}"
-			echo "pre{margin:0px}"
-			echo ".bold{font-weight:bold}"
-			echo ".branch{color:green;font-weight:bold}"
-			echo ".commit{color:olive}"
-			echo ".deletion{color:red}"
-			echo ".hunk{color:teal}"
-			echo ".insertion{color:green}"
-			echo ".reference{color:teal;font-weight:bold}"
-			echo ".remote{color:red;font-weight:bold}"
-			echo ".item:hover{background-color:#eee}"
-			echo ".item td{white-space:nowrap}"
-			echo ".linenumber{text-align:right;-moz-user-select:-moz-none;-khtml-user-select: none;-webkit-user-select:none}"
-			echo ".linenumber a{text-decoration:none}"
-			echo "#main{border-collapse:collapse;table-layout:fixed}"
-			echo "#main td,th{padding-left:5px;padding-right:5px}"
-			echo "#navigation{color:#000;font-weight:900;text-align:left}"
-		} > $WWW_DIR/style.css
-	else
-		{
-			echo "a{color:#8dc}"
-			echo "a:hover{color:#8cd}"
-			echo "body{background-color:#111;color:#fff;font-family:monospace;margin-top:0px}"
-			echo "h1{margin:0px}"
-			echo "h1 a{color:#fff;text-decoration:none}"
-			echo "h4{color:#777;margin:0px}"
-			echo "h5{font-style:italic;font-weight:normal;margin:0px}"
-			echo "hr{border:none;border-bottom:1px dashed #fff}"
-			echo "pre{margin:0px}"
-			echo ".bold{font-weight:bold}"
-			echo ".branch{color:green;font-weight:bold}"
-			echo ".commit{color:olive}"
-			echo ".deletion{color:red}"
-			echo ".hunk{color:teal}"
-			echo ".insertion{color:green}"
-			echo ".reference{color:teal;font-weight:bold}"
-			echo ".remote{color:red;font-weight:bold}"
-			echo ".item:hover{background-color:#1a1a1a}"
-			echo ".item td{white-space:nowrap}"
-			echo ".linenumber{text-align:right;-moz-user-select:-moz-none;-khtml-user-select: none;-webkit-user-select:none}"
-			echo ".linenumber a{text-decoration:none}"
-			echo "#main{border-collapse:collapse;table-layout:fixed}"
-			echo "#main td,th{padding-left:5px;padding-right:5px}"
-			echo "#navigation{color:#fff;font-weight:900;text-align:left}"
-		} > $WWW_DIR/style.css
-	fi
+	{
+		echo "a{color:#8dc}"
+		echo "a:hover{color:#8cd}"
+		echo "body{background-color:#111;color:#fff;font-family:monospace;margin-top:0px}"
+		echo "h1{margin:0px}"
+		echo "h1 a{color:#fff;text-decoration:none}"
+		echo "h4{color:#777;margin:0px}"
+		echo "h5{font-style:italic;font-weight:normal;margin:0px}"
+		echo "hr{border:none;border-bottom:1px dashed #fff}"
+		echo "pre{margin:0px}"
+		echo ".bold{font-weight:bold}"
+		echo ".branch{color:green;font-weight:bold}"
+		echo ".commit{color:olive}"
+		echo ".deletion{color:red}"
+		echo ".hunk{color:teal}"
+		echo ".insertion{color:green}"
+		echo ".reference{color:teal;font-weight:bold}"
+		echo ".remote{color:red;font-weight:bold}"
+		echo ".item:hover{background-color:#1a1a1a}"
+		echo ".item td{white-space:nowrap}"
+		echo ".linenumber{text-align:right;-moz-user-select:-moz-none;-khtml-user-select: none;-webkit-user-select:none}"
+		echo ".linenumber a{text-decoration:none}"
+		echo "#main{border-collapse:collapse;table-layout:fixed}"
+		echo "#main td,th{padding-left:5px;padding-right:5px}"
+		echo "#navigation{color:#fff;font-weight:900;text-align:left}"
+	} > $WWW_DIR/style.css
 }
 
 generate_index() {
@@ -116,7 +67,8 @@ generate_index() {
 generate_repository_index() {
 	local REPO_NAME=$1
 	local REPO_URL=$2
-	local REPO_DESC=${@:3} # todo: fix possible bashism
+	shift 2
+	local REPO_DESC="${@}"
 	mkdir -p $WWW_DIR/$REPO_NAME/commit
 	{
 		echo "<!doctype html>"
@@ -151,7 +103,7 @@ REPOS=$(find $REPO_DIR -type d -name mirrors -prune -o -type d -name .git -print
 [ -z "$REPOS" ] && echo "'$REPO_DIR' contains no repositories" && exit 1
 mkdir -p $WWW_DIR && rm -rf $WWW_DIR/*
 [ ! -z $CNAME ] && echo $CNAME > $WWW_DIR/CNAME
-generate_yml && generate_404 && generate_css && generate_index
+generate_404 && generate_css && generate_index
 for d in $REPOS; do
 	REPO_NAME=$(basename -s .git `git --git-dir $d config --get remote.origin.url`)
 	if [ -f $d/description ]; then
@@ -216,6 +168,5 @@ for d in $REPOS; do
 				COUNT=`expr $COUNT + 1`
 			fi
 		done
-		echo "</table></pre>" >> $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
 	done
 done
