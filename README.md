@@ -27,11 +27,11 @@ The `CNAME` option is optional if you are planning on using a custom domain with
 Lastly, stagit will ignore the `$REPO_DIR/mirrors` directory by default. To make stagit include this directory, remove `-path $REPO_DIR/mirrors -prune` from the `find` command in the source.
 
 ## Todo
-- Add a footer to all pages with the last updated datetime and a link to this repository.
-- Hook git pushes to rebuild the repositories index.
-- Add support for displaying LICENSE/README files and convert markdown to HTML.
-- Add support to view file contents *(have to detect all non-binary files to exclude images, etc)*.
-- Fix all possible bashisms identified in source by checkbashisms.
+- Support for using hosting on Gitlab.
+- Git push hook.
+- Support for displaying LICENSE/README files and convert markdown to HTML. *(`find . -type f -not -path '*/\.git/*' -exec grep -I -q . {} \; -print`)*
+- Support to view files and content.
+- Fix bashisms identified by checkbashisms.
 
 ## Mirrors
 - [acid.vegas](https://acid.vegas/stagit) *(main)*
