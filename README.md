@@ -31,7 +31,6 @@ Lastly, stagit will ignore the `$REPO_DIR/mirrors` directory by default. To make
 - Git push hook.
 - Support for displaying LICENSE/README files and convert markdown to HTML. *(`find . -type f -not -path '*/\.git/*' -exec grep -I -q . {} \; -print`)*
 - Support to view files and content.
-- Fix bashisms identified by checkbashisms.
 
 ## Mirrors
 - [acid.vegas](https://acid.vegas/stagit) *(main)*
