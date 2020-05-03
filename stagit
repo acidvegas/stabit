@@ -152,7 +152,7 @@ for d in $REPOS; do
 		COMMIT_HASH=$(echo $line | cut -d'|' -f4)
 		COMMIT_MESSAGE=$(echo $line | cut -d'|' -f5 | sed 's/&/\&amp;/g;s/</\&lt;/g;s/>/\&gt;/g;s/"/\&quot;/g;')
 		if [ $MAX_COMMIT_MSG -ne 0 -a ${#COMMIT_MESSAGE} -gt $MAX_COMMIT_MSG ]; then
-			COMMIT_MESSAGE=${COMMIT_MESSAGE:0:$MAX_COMMIT_MSG}... # todo: fix possible bashism
+			COMMIT_MESSAGE=$(echo $COMMIT_MESSAGE | cut -c 1-$MAX_COMMIT_MSG)
 		fi
 		COMMIT_AUTHOR=$(echo $line | cut -d'|' -f6)
 		COMMIT_DATE=$(echo $line | cut -d'|' -f7)
@@ -170,10 +170,8 @@ for d in $REPOS; do
 		COMMIT_DIFF=$(echo "$COMMIT_DIFF" | sed 's/\[31m/<span class="deletion">/g; s/\[1\;31m/<span class="remote">/g; s/\[32m/<span class="insertion">/g; s/\[1\;32m/<span class="branch">/g; s/\[33m/<span class="commit">/g; s/\[36m/<span class="hunk">/g; s/\[1\;36m/<span class="reference">/g; s/\[1m/<span class="bold">/g; s/\[m/<\/span>/g')
 		COUNT=1
 		echo "$COMMIT_DIFF" | while IFS= read -r line; do
-			#if [ ! "$line" = "\ No newline at end of file" ]; then
 			echo "<tr class=\"item\"><td class=\"linenumber\"><a href=\"#l$COUNT\" name=\"l$COUNT\">$COUNT</a></td><td><pre>$line</pre></td></tr>" >> $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
 			COUNT=`expr $COUNT + 1`
-			#fi
 		done
 		echo "</table>" >> $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
 		generate_footer $WWW_DIR/$REPO_NAME/commit/$COMMIT_HASH.html
