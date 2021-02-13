@@ -4,9 +4,11 @@
 ## Information
 This is basically a pure shell script clone of [stagit](https://git.2f30.org/stagit/).
 
-It is meant to be hosted on [Github](https://github.com) using [Github Pages](https://pages.github.com) with a [Custom domain](https://help.github.com/en/articles/using-a-custom-domain-with-github-pages).
+It is meant to be hosted on [Github](https://github.com) using [Github Pages](https://pages.github.com) with a [Custom Domain](https://help.github.com/en/articles/using-a-custom-domain-with-github-pages).
 
-A live demo of this script can be seen [here](https://acid.vegas).
+It also has support for hosting on [Gitlab](https://gitlab.com) using [Gitlab Pages](https://docs.gitlab.com/ee/user/project/pages/) with a [Custom Domain](https://docs.gitlab.com/ee/user/project/pages/custom_domains_ssl_tls_certification/)
+
+A live demo of the output of this script can be seen [here](https://acid.vegas).
 
 ## Settings
 | Setting          | Default        | Description                                                        |
@@ -27,7 +29,6 @@ The `CNAME` option is optional if you are planning on using a custom domain with
 Lastly, stagit will ignore the `$REPO_DIR/mirrors` directory by default. To make stagit include this directory, remove `-path $REPO_DIR/mirrors -prune` from the `find` command in the source.
 
 ## Todo
-- Support for using on Gitlab.
 - Git push hook.
 - Support for displaying LICENSE/README files and convert markdown to HTML.
 	- `curl https://api.github.com/markdown/raw -X "POST" -H "Content-Type: text/plain" -d "README CONTENT HERE"`

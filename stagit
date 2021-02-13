@@ -14,12 +14,28 @@ TITLE='Repositories' # title used on homepage
 WWW_DIR=$HOME/www    # directory to output to
 #######################################################################################
 
+generate_yaml() {
+	{
+		echo "pages:"
+		echo "  stage: deploy"
+		echo "  script:"
+		echo "  - mkdir .public"
+		echo "  - cp -r * .public"
+		echo "  - mv .public public"
+		echo "  artifacts:"
+		echo "    paths:"
+		echo "    - public"
+		echo "  only:"
+		echo "  - master"
+	} > $WWW_DIR/.gitlab-ci.yml
+}
+
 generate_404() {
 	{
 		echo "<!doctype html>"
 		echo "<title>Error</title>"
 		echo "<style>body{background-color:#111;color:#fff;font-family:monospace}</style>"
-		echo "<br><br><br><enter><h1>404</h1></center>"
+		echo "<br><br><br><center><h1>404</h1></center>"
 	} > $WWW_DIR/404.html
 }
 
@@ -80,11 +96,17 @@ generate_repository_index() {
 		echo "<div style=\"padding-left:30px\">"
 		echo "<h4>$_REPO_DESC</h4>"
 		echo "<h5>git clone <a href=\"$_REPO_URL\" title=\"$_REPO_NAME clone URL\">$_REPO_URL</a></h5>"
+		echo "<br><h4><a href=\"index.html\">Logs</a> | <a href=\"files.html\">Files</a> | <a href=\"refs.html\">Refs</a> | <a href=\"file/README.md.html\">README</a> | <a href=\"file/LICENSE.html\">LICENSE</a></h4>"
 		echo "</div>"
 		echo "<hr>"
 		echo "<table id=\"main\" cellpadding=\"0\" cellspacing=\"0\">"
 		echo "<tr id=\"navigation\"><th></th><th>Hash</th><th>Commit message</th><th>Author</th><th>Date</th><th align=\"right\">Files</th><th align=\"right\">+</th><th align=\"right\">-</th></tr>"
 	} > $WWW_DIR/$_REPO_NAME/index.html
+}
+
+generate_repository_files() {
+	mkdir -p $WWW_DIR/$_REPO_NAME/file
+	# not done
 }
 
 generate_commit_index() {
@@ -106,11 +128,11 @@ generate_footer() {
 }
 
 [ ! -d $REPO_DIR ] && echo "'$REPO_DIR' directory does not exist" && exit 1
-REPOS=$(find $REPO_DIR -type d -name mirrors -prune -o -type d -name .git -print | sort  -t '/' -k 7)
+REPOS=$(find $REPO_DIR -type d -name mirrors -prune -o -type d -name .git -print | sort  -t '/' -k 7) # FIX THIS
 [ -z "$REPOS" ] && echo "'$REPO_DIR' contains no repositories" && exit 1
 mkdir -p $WWW_DIR && rm -rf $WWW_DIR/*
 [ ! -z $CNAME ] && echo $CNAME > $WWW_DIR/CNAME
-generate_404 && generate_css && generate_index
+generate_yaml && generate_404 && generate_css && generate_index
 for d in $REPOS; do
 	REPO_NAME=$(basename -s .git `git --git-dir $d config --get remote.origin.url`)
 	if [ -f $d/description ]; then
